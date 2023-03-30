@@ -58,3 +58,17 @@ az aro create \
   --master-subnet "$AZR_CLUSTER-aro-control-subnet-$AZR_RESOURCE_LOCATION" \
   --worker-subnet "$AZR_CLUSTER-aro-machine-subnet-$AZR_RESOURCE_LOCATION" \
   --pull-secret "$AZR_PULL_SECRET"
+
+echo "Logging into the ARO cluster..."
+apiServer=$(az aro show -g $AZURE_RESOURCE_GROUP -n $AZURE_ARC_CLUSTER_RESOURCE_NAME --query apiserverProfile.url -o tsv)
+oc login $apiServer -u kubeadmin -p $kubcepass
+# Openshift prep before connecting
+oc adm policy add-scc-to-user privileged system:serviceaccount:azure-arc:azure-arc-kube-aad-proxy-sa
+echo ""
+
+apiServerURI="${apiServer#https://}"
+clusterName="${apiServerURI//[.]/-}"
+user="kube:admin"
+context="default/$clusterName$user"
+
+oc get nodes
