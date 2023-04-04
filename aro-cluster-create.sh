@@ -21,17 +21,26 @@ echo "Please provide the following details before continuing:"
 
 echo ""
 
-read -p "Provide Azure Resource Location e.g: eastus: " AZR_RESOURCE_LOCATION
+read -p "Provide Azure Resource Location [Default value - eastus]: " AZR_RESOURCE_LOCATION
+AZR_RESOURCE_LOCATION=${AZR_RESOURCE_LOCATION:-eastus}
+echo $AZR_RESOURCE_LOCATION
 
 read -p "Provide Azure Resource Group - (already created by RHDPS): " AZR_RESOURCE_GROUP
 
+red_prefix="\033[31m"
+red_suffix="\033[00m"
+echo -e "$red_prefix" If you get an error that the resource group wasnt found for RHDPS. Use command az login --tenant xyz to login to the RHDPS directory. Command to list current tenants or directories is az account tenant list. "$red_suffix"
+
 read -p "Provide Cluster Name: " AZR_CLUSTER
 
-read -p "Provide Redhat Pull Secret (text-only): " AZR_PULL_SECRET
+read -p "Provide Redhat Pull Secret (Location-only) [Default - ~/Downloads/pull-secret.txt]: " AZR_PULL_SECRET
+
+AZR_PULL_SECRET=${AZR_PULL_SECRET:-~/Downloads/pull-secret.txt}
+echo $AZR_PULL_SECRET
 
 echo "Creating a Virtual Network for the cluster....."
 
-az network vnet create   --address-prefixes 10.0.0.0/22   --name "$AZR_CLUSTER-aro-vnet-$AZR_RESOURCE_LOCATION"   --resource-group $AZR_RESOURCE_GROUP
+az network vnet create   --address-prefixes 10.0.0.0/22   --name "$AZR_CLUSTER-aro-vnet-$AZR_RESOURCE_LOCATION"   --resource-group $AZR_RESOURCE_GROUP --location $AZR_RESOURCE_LOCATION
 
 echo "Creating Control Plane Subnet...."
 
@@ -57,10 +66,11 @@ az aro create \
   --vnet "$AZR_CLUSTER-aro-vnet-$AZR_RESOURCE_LOCATION" \
   --master-subnet "$AZR_CLUSTER-aro-control-subnet-$AZR_RESOURCE_LOCATION" \
   --worker-subnet "$AZR_CLUSTER-aro-machine-subnet-$AZR_RESOURCE_LOCATION" \
-  --pull-secret "$AZR_PULL_SECRET"
+  --pull-secret @$AZR_PULL_SECRET
 
 echo "Logging into the ARO cluster..."
-apiServer=$(az aro show -g $AZURE_RESOURCE_GROUP -n $AZURE_ARC_CLUSTER_RESOURCE_NAME --query apiserverProfile.url -o tsv)
+apiServer=$(az aro show -g $AZR_RESOURCE_GROUP -n $AZR_CLUSTER --query apiserverProfile.url -o tsv)
+kubcepass=$(az aro list-credentials --name $AZR_CLUSTER -g $AZR_RESOURCE_GROUP --query kubeadminPassword -o tsv)
 oc login $apiServer -u kubeadmin -p $kubcepass
 # Openshift prep before connecting
 oc adm policy add-scc-to-user privileged system:serviceaccount:azure-arc:azure-arc-kube-aad-proxy-sa
@@ -72,3 +82,5 @@ user="kube:admin"
 context="default/$clusterName$user"
 
 oc get nodes
+
+oc whoami --show-console
