@@ -33,9 +33,9 @@ echo -e "$red_prefix" If you get an error that the resource group wasnt found fo
 
 read -p "Provide Cluster Name: " AZR_CLUSTER
 
-read -p "Provide Redhat Pull Secret (Location-only) [Default - ~/Downloads/pull-secret.txt]: " AZR_PULL_SECRET
+read -p "Provide Redhat Pull Secret (Location-only) [Default - ~/pull-secret.txt]: " AZR_PULL_SECRET
 
-AZR_PULL_SECRET=${AZR_PULL_SECRET:-~/Downloads/pull-secret.txt}
+AZR_PULL_SECRET=${AZR_PULL_SECRET:-~/pull-secret.txt}
 echo $AZR_PULL_SECRET
 
 echo "Creating a Virtual Network for the cluster....."
