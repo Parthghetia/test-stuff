@@ -1,5 +1,8 @@
 #!/bin/bash
 
+set -u
+
+
 echo "Please ensure that Azure CLI is installed...."
 
 read -p "Do you want to proceed? (yes/no) " yn
@@ -15,7 +18,16 @@ esac
 
 echo "Let's check you weren't lying...."
 
-az login
+# Check if the user is logged in to Azure
+if az account show &>/dev/null; then
+    echo "User is logged in to Azure."
+else
+    echo "You were lying!!! User is not logged in to Azure. Please log in using 'az login' before running this script."
+    exit 1
+fi
+
+# Continue with the rest of your script here
+
 
 echo "Please provide the following details before continuing:"
 
@@ -27,16 +39,31 @@ echo $AZR_RESOURCE_LOCATION
 
 read -p "Provide Azure Resource Group - (already created by RHDPS): " AZR_RESOURCE_GROUP
 
+read -p "Provide Azure Subscription - (already created by RHDPS): " AZR_SUBSCRIPTION
 red_prefix="\033[31m"
 red_suffix="\033[00m"
 echo -e "$red_prefix" If you get an error that the resource group wasnt found for RHDPS. Use command az login --tenant xyz to login to the RHDPS directory. Command to list current tenants or directories is az account tenant list. "$red_suffix"
 
 read -p "Provide Cluster Name: " AZR_CLUSTER
 
-read -p "Provide Redhat Pull Secret (Location-only) [Default - ~/pull-secret.txt]: " AZR_PULL_SECRET
+read -p "Provide Redhat Pull Secret (Location-only) [Default - ./pull-secret.txt]: " AZR_PULL_SECRET
 
-AZR_PULL_SECRET=${AZR_PULL_SECRET:-~/pull-secret.txt}
+AZR_PULL_SECRET=${AZR_PULL_SECRET:-./pull-secret.txt}
+
 echo $AZR_PULL_SECRET
+# Check if the variable is set
+if [ -z "$AZR_PULL_SECRET" ]; then
+    echo "Pull Secret is empty please specify absolute path and try again. Tip: Download to current directory and select default option"
+    exit 1
+fi
+
+# If variable is not empty, continue script execution
+echo "Pull secret looks good moving on!"
+
+
+echo "Setting the subscription for the local env"
+
+az account set --subscription $AZR_SUBSCRIPTION
 
 echo "Creating a Virtual Network for the cluster....."
 
